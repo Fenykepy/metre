@@ -59,7 +59,10 @@ gulp.task('watch', function() {
             .pipe(gulp.dest(path.DEST_JS))
             console.log('Updated');
     })
-        .bundle()
+    .bundle().on('error', function(err) {
+        console.log(err.message)
+        this.end();
+    })
         .pipe(source(path.OUT))
         .pipe(gulp.dest(path.DEST_JS));
 });
