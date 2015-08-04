@@ -85,7 +85,7 @@ gulp.task('build', function(){
 gulp.task('replaceHTML', function(){
     gulp.src(path.HTML)
         .pipe(htmlreplace({
-            'js': path.MINIFIED_OUT
+            'js': '/assets/js/' + path.MINIFIED_OUT
         }))
         .pipe(gulp.dest(path.DEST));
 });
