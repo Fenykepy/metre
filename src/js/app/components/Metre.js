@@ -6,6 +6,8 @@ var WorkforceResults = require('./WorkforceResults');
 
 // leaks coefs
 var banding_leak = 1.2;
+// board to be laminated leak
+var laminated_board_leak = 1.2;
 
 var Metre = React.createClass({
     getInitialState: function() {
@@ -18,10 +20,13 @@ var Metre = React.createClass({
             h_sep: 2,
             no_back: false,
             box_leak: 1.2,
+            box_custom_leak: 1.2,
 
-            nb_doors: 0,
+            doors_nb: 0,
             doors_position: "horizontal",
             doors_leak: 1.2,
+            doors_horizontal: true,
+            doors_custom_leak: 1.2,
             
             doors_laminate: null,
             doors_glue: null,
@@ -29,8 +34,8 @@ var Metre = React.createClass({
             doors_banding: null,
             
             box_board: null,
-            //box_laminate: null,
             //box_glue: null,
+            //box_laminate: null,
             box_banding: null,
 
             work_cut_time: null,
@@ -72,7 +77,40 @@ var Metre = React.createClass({
         }, this.computeWork);
     },
     computeDoors: function() {
-        return;
+        if (! this.state.width || ! this.state.height ||
+                              this.state.doors_nb < 1) {
+            // if no door or no dimensions, reinit
+            this.setState({
+                doors_board: null,
+                doors_glue: null,
+                doors_laminate: null,
+                doors_banding: null
+            }, this.computeWork);
+            return;
+        }
+        var nb = this.state.doors_nb;
+        var width = this.state.width / 1000;
+        var height = this.state.height / 1000;
+        // compute doors surface
+        var doors_net = width * height;
+        // compute board surface
+        var board = doors_net * laminated_board_leak;
+        // compute laminate surface
+        var laminate = doors_net * this.state.doors_leak * 2;
+        // compute banding length
+        if (this.state.doors_position == "horizontal") {
+            var banding = (width * 2 + height * nb * 2) * banding_leak;
+        } else {
+            var banding = (height * 2 + width * nb * 2) * banding_leak;
+        }
+
+        // save state and refresh work force
+        this.setState({
+            doors_board: board,
+            doors_glue: laminate,
+            doors_laminate: laminate,
+            doors_banding: banding
+        }, this.computeWork);
     },
     computeWork: function() {
         var cut = (this.state.box_board + this.state.doors_board
@@ -114,7 +152,36 @@ var Metre = React.createClass({
             no_back: ! this.state.no_back
         }, this.computeBox);
     },
-
+    box_leakChange: function(e) {
+        this.setState({
+            box_leak: e.target.value
+        }, this.computeBox);
+    },
+    box_custom_leakChange: function(e) {
+        this.setState({
+            box_custom_leak: e.target.value
+        });
+    },
+    doors_nbChange: function(e) {
+        this.setState({
+            doors_nb: e.target.value
+        }, this.computeDoors);
+    },
+    doors_positionChange: function(e) {
+        this.setState({
+            doors_position: e.target.value
+        }, this.computeDoors);
+    },
+    doors_leakChange: function(e) {
+        this.setState({
+            doors_leak: e.target.value
+        }, this.computeDoors);
+    },
+    doors_custom_leakChange: function(e) {
+        this.setState({
+            doors_custom_leak: e.target.value
+        });
+    },
     render: function() {
         return (
             <div>
@@ -201,8 +268,9 @@ var Metre = React.createClass({
                                         name="box_leak"
                                         type="radio"
                                         id="box_regular"
-                                        value="1.2"
-                                        checked={this.state.box_leak == 1.2} />
+                                        defaultValue="1.2"
+                                        onChange={this.box_leakChange}
+                                        defaultChecked />
                                 décors uni (perte 1.2)</label>
                             </div>
                             <div className="col-4 radio">
@@ -210,13 +278,22 @@ var Metre = React.createClass({
                                         name="box_leak"
                                         type="radio"
                                         id="box_grain"
-                                        value="1.35"
-                                        checked={this.state.box_leak == 1.35} />
+                                        defaultValue="1.35"
+                                        onChange={this.box_leakChange} />
                                 décors avec fil (perte 1.35)</label>
                             </div>
                             <div className="col-4 radio">
-                                <label for="box_custom"><input name="box_leak" type="radio" id="box_custom" />
-                                    perte personnalisée : <input type="number" step=".01" value="1.20" /></label>
+                                <label for="box_custom"><input
+                                        name="box_leak"
+                                        type="radio"
+                                        onChange={this.box_leakChange}
+                                        value={this.state.box_custom_leak}
+                                        id="box_custom" />
+                                    perte personnalisée : <input
+                                        type="number"
+                                        step=".01"
+                                        onChange={this.box_custom_leakChange}
+                                        value={this.state.box_custom_leak} /></label>
                             </div>
                         </div>
                     </div>
@@ -230,30 +307,67 @@ var Metre = React.createClass({
                     <div className="bordered_wrapper_down">
                         <div className="form-horizontal">
                             <label className="col-3" for="nb_doors">Nombre de portes :</label>
-                            <input className="col-9" name="nb_doors" type="number" min="0" step="1" value="0" required/>
+                            <input className="col-9"
+                                   name="nb_doors"
+                                   type="number" 
+                                   min="0"
+                                   step="1"
+                                   value={this.state.doors_nb} 
+                                   onChange={this.doors_nbChange}
+                                   required/>
                         </div>
                         <div className="row">
                             <div className="col-5 col-center radio">
-                                <label for="h_doors"><input name="doors_position" type="radio" id="h_doors" value="horizontal" checked />
+                                <label for="h_doors"><input
+                                        name="doors_position"
+                                        type="radio" id="h_doors"
+                                        defaultValue="horizontal"
+                                        onChange={this.doors_positionChange}
+                                        defaultChecked />
                                 portes juxtaposées</label>
                             </div>
                             <div className="col-5 col-center radio">
-                                <label for="v_doors"><input name="doors_position" type="radio" id="v_doors" value="vertical" />
+                                <label for="v_doors"><input
+                                        name="doors_position"
+                                        type="radio"
+                                        id="v_doors"
+                                        defaultValue="vertical"
+                                    onChange={this.doors_positionChange} />
                                 portes superposées</label>
                             </div>
                         </div>
                         <div className="row">
                             <div className="col-4 radio">
-                                <label for="doors_regular"><input name="doors_leak" type="radio" id="doors_regular" value="1.2" checked />
+                                <label for="doors_regular"><input
+                                        name="doors_leak"
+                                        type="radio"
+                                        id="doors_regular"
+                                        defaultValue="1.2"
+                                        onChange={this.doors_leakChange}
+                                        defaultChecked />
                                 décors uni (perte 1.2)</label>
                             </div>
                             <div className="col-4 radio">
-                                <label for="doors_grain"><input name="doors_leak" type="radio" id="doors_grain" value="1.35" />
+                                <label for="doors_grain"><input
+                                        name="doors_leak"
+                                        type="radio"
+                                        id="doors_grain"
+                                        defaultValue="1.35"
+                                        onChange={this.doors_leakChange} />
                                 décors avec fil (perte 1.35)</label>
                             </div>
                             <div className="col-4 radio">
-                                <label for="doors_custom"><input name="doors_leak" type="radio" id="doors_custom" />
-                                    perte personnalisée : <input type="number" step=".01" value="1.20" /></label>
+                                <label for="doors_custom"><input
+                                        name="doors_leak"
+                                        type="radio"
+                                        onChange={this.doors_leakChange}
+                                        value={this.state.doors_custom_leak}
+                                        id="doors_custom" />
+                                    perte personnalisée : <input
+                                        type="number"
+                                        step=".01"
+                                        onChange={this.doors_custom_leakChange}
+                                        value={this.state.doors_custom_leak} /></label>
                             </div>
                         </div>
                     </div>
