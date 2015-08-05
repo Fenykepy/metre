@@ -28,18 +28,18 @@ var Metre = React.createClass({
             doors_horizontal: true,
             doors_custom_leak: 1.2,
             
-            doors_laminate: null,
-            doors_glue: null,
-            doors_board: null,
-            doors_banding: null,
+            doors_laminate: 0,
+            doors_glue: 0,
+            doors_board: 0,
+            doors_banding: 0,
             
-            box_board: null,
-            //box_glue: null,
-            //box_laminate: null,
-            box_banding: null,
+            box_board: 0,
+            //box_glue: 0,
+            //box_laminate: 0,
+            box_banding: 0,
 
-            work_cut_time: null,
-            work_plating_time: null
+            work_cut_time: 0,
+            work_plating_time: 0
         };
     },
     computeAll: function() {
@@ -49,6 +49,11 @@ var Metre = React.createClass({
     computeBox: function() {
         if (! this.state.width || ! this.state.height ||
                               ! this.state.depth) {
+            // if no dimensions, reinit (else last results stays)
+            this.setState({
+                box_board: 0,
+                box_banding: 0
+            }, this.computeWork);
             return;
         }
         var v_sep = this.state.v_sep;
@@ -79,12 +84,12 @@ var Metre = React.createClass({
     computeDoors: function() {
         if (! this.state.width || ! this.state.height ||
                               this.state.doors_nb < 1) {
-            // if no door or no dimensions, reinit
+            // if no door or no dimensions, reinit (else last results stays)
             this.setState({
-                doors_board: null,
-                doors_glue: null,
-                doors_laminate: null,
-                doors_banding: null
+                doors_board: 0,
+                doors_glue: 0,
+                doors_laminate: 0,
+                doors_banding: 0
             }, this.computeWork);
             return;
         }
@@ -116,6 +121,9 @@ var Metre = React.createClass({
         var cut = (this.state.box_board + this.state.doors_board
                               + this.state.doors_laminate) * 0.05;
         var plating = (this.state.box_banding + this.state.doors_banding) / 60;
+
+        console.log(cut);
+        console.log(plating);
         
         this.setState({
             work_cut_time: cut,
